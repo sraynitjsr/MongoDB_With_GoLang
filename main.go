@@ -45,7 +45,7 @@ func main() {
 		{Key: "Science", Value: 90},
 	}
 
-	insertOneResult, err := insertOne(client, ctx, "student", "marks", document)
+	insertOneResult, err := insertOne(client, ctx, "my-mongo-db", "students", document)
 
 	if err != nil {
 		panic(err)
