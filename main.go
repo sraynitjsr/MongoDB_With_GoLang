@@ -27,9 +27,9 @@ func connect(uri string, timeout int) (*mongo.Client, context.Context, context.C
 
 	// Set Client Options
 	credentials := options.Credential{
-		Username:      "sray",
-		Password:      "password",
-		AuthMechanism: "SCRAM-SHA-1",
+		Username: "sray",
+		Password: "password",
+		// AuthMechanism: "SCRAM-SHA-1",
 	}
 	clientOptions := options.Client().ApplyURI(uri).SetAuth(credentials)
 
