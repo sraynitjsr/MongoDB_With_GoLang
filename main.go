@@ -11,6 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var (
+	username string = "dummyUser"
+	password string = "password"
+	timeout  int    = 30
+)
+
 func close(client *mongo.Client, ctx context.Context, cancel context.CancelFunc) {
 	defer cancel()
 	defer func() {
@@ -27,9 +33,8 @@ func connect(uri string, timeout int) (*mongo.Client, context.Context, context.C
 
 	// Set Client Options
 	credentials := options.Credential{
-		Username: "sray",
-		Password: "password",
-		// AuthMechanism: "SCRAM-SHA-1",
+		Username: username,
+		Password: password,
 	}
 	clientOptions := options.Client().ApplyURI(uri).SetAuth(credentials)
 
@@ -50,8 +55,10 @@ func insertOne(client *mongo.Client, ctx context.Context, dataBase, col string, 
 }
 
 func main() {
-	timeout := 30
-	client, ctx, cancel, err := connect("mongodb://localhost:27017", timeout)
+	URI := fmt.Sprintf("mongodb://%s:%s@localhost:27017", username, password)
+
+	client, ctx, cancel, err := connect(URI, timeout)
+
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +66,7 @@ func main() {
 	defer close(client, ctx, cancel)
 
 	var document = bson.D{
-		{Key: "Roll", Value: 10},
+		{Key: "Roll", Value: 50},
 		{Key: "Mathematics", Value: 70},
 		{Key: "Science", Value: 85},
 	}
