@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 func close(client *mongo.Client, ctx context.Context, cancel context.CancelFunc) {
@@ -25,12 +25,10 @@ func connect(uri string) (*mongo.Client, context.Context, context.CancelFunc, er
 	return client, ctx, cancel, err
 }
 
-func ping(client *mongo.Client, ctx context.Context) error {
-	if err := client.Ping(ctx, readpref.Primary()); err != nil {
-		return err
-	}
-	fmt.Println("Connected Successfully")
-	return nil
+func insertOne(client *mongo.Client, ctx context.Context, dataBase, col string, doc interface{}) (*mongo.InsertOneResult, error) {
+	collection := client.Database(dataBase).Collection(col)
+	result, err := collection.InsertOne(ctx, doc)
+	return result, err
 }
 
 func main() {
@@ -41,5 +39,24 @@ func main() {
 
 	defer close(client, ctx, cancel)
 
-	ping(client, ctx)
+	var document = bson.D{
+		{Key: "Roll", Value: 1},
+		{Key: "Mathematics", Value: 100},
+		{Key: "Science", Value: 90},
+	}
+
+	insertOneResult, err := insertOne(client, ctx, "student", "marks", document)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Output of One Document Insertion")
+
+	fmt.Println(insertOneResult.InsertedID)
+
+	if err != nil {
+		panic(err)
+	}
+
 }
