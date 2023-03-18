@@ -87,10 +87,10 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	filter := bson.M{"_id": id}
 
 	update := bson.D{
-		{"$set", bson.D{
-			{"name", user.Name},
-			{"email", user.Email},
-			{"password", user.Password},
+		{Key: "$set", Value: bson.D{
+			{Key: "name", Value: user.Name},
+			{Key: "email", Value: user.Email},
+			{Key: "password", Value: user.Password},
 		}},
 	}
 
