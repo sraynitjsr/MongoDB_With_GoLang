@@ -2,73 +2,120 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
-	"time"
+	"net/http"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type User struct {
-	Name     string `bson:"name"`
-	Email    string `bson:"email"`
-	Password string `bson:"password"`
+	ID       primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Name     string             `json:"name,omitempty" bson:"name,omitempty"`
+	Email    string             `json:"email,omitempty" bson:"email,omitempty"`
+	Password string             `json:"password,omitempty" bson:"password,omitempty"`
 }
 
-type MongoDBClient struct {
-	client *mongo.Client
-}
-
-func NewMongoDBClient() (*MongoDBClient, error) {
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		return nil, err
-	}
-	return &MongoDBClient{client}, nil
-}
-
-func (c *MongoDBClient) CreateUser(user *User) error {
-	collection := c.client.Database("mydb").Collection("users")
-	_, err := collection.InsertOne(context.Background(), user)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *MongoDBClient) GetUserByEmail(email string) (*User, error) {
-	var user User
-	collection := c.client.Database("mydb").Collection("users")
-	err := collection.FindOne(context.Background(), map[string]string{"email": email}).Decode(&user)
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
+var client *mongo.Client
 
 func main() {
-	client, err := NewMongoDBClient()
+	// Connect to MongoDB
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	client, _ = mongo.Connect(context.Background(), clientOptions)
+
+	// Initialize routes
+	http.HandleFunc("/users", getUsers)
+	http.HandleFunc("/users/create", createUser)
+	http.HandleFunc("/users/update", updateUser)
+	http.HandleFunc("/users/delete", deleteUser)
+
+	// Start the server
+	log.Fatal(http.ListenAndServe(":8000", nil))
+}
+
+// GET all users
+func getUsers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var users []User
+	collection := client.Database("testdb").Collection("users")
+	ctx := context.Background()
+	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 
-	user := &User{
-		Name:     "Subhradeep Ray",
-		Email:    "subhradeepray2017@gmail.com",
-		Password: "won't tell you",
-	}
-	err = client.CreateUser(user)
-	if err != nil {
-		log.Fatal(err)
+	defer cursor.Close(ctx)
+	for cursor.Next(ctx) {
+		var user User
+		cursor.Decode(&user)
+		users = append(users, user)
 	}
 
-	foundUser, err := client.GetUserByEmail("subhradeepray2017@gmail.com")
+	json.NewEncoder(w).Encode(users)
+}
+
+// POST a new user
+func createUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var user User
+	json.NewDecoder(r.Body).Decode(&user)
+	collection := client.Database("testdb").Collection("users")
+	ctx := context.Background()
+	result, err := collection.InsertOne(ctx, user)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
-	fmt.Printf("Found user: %+v\n", foundUser)
+
+	json.NewEncoder(w).Encode(result)
+}
+
+// PUT update an existing user
+func updateUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var user User
+	json.NewDecoder(r.Body).Decode(&user)
+	collection := client.Database("testdb").Collection("users")
+	ctx := context.Background()
+	id, _ := primitive.ObjectIDFromHex(user.ID.Hex())
+	filter := bson.M{"_id": id}
+
+	update := bson.D{
+		{"$set", bson.D{
+			{"name", user.Name},
+			{"email", user.Email},
+			{"password", user.Password},
+		}},
+	}
+
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	json.NewEncoder(w).Encode(result)
+}
+
+// DELETE an existing user
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	params := r.URL.Query()
+	id, _ := primitive.ObjectIDFromHex(params.Get("id"))
+	collection := client.Database("testdb").Collection("users")
+	ctx := context.Background()
+
+	filter := bson.M{"_id": id}
+	result, err := collection.DeleteOne(ctx, filter)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	json.NewEncoder(w).Encode(result)
 }
