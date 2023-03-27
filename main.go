@@ -5,16 +5,16 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
 	controllers "github.com/sraynitjsr/controllers"
 )
 
 func main() {
 	fmt.Println("Starting Server")
-	router := httprouter.New()
-	router.GET("/", controllers.Index)
-	router.GET("/users", controllers.GetUsers)
-	router.GET("/users/{userId}", controllers.GetUserById)
-	router.POST("/users/{userId}", controllers.CreateUser)
-	log.Fatal(http.ListenAndServe(":8080", router))
+	mdb := controllers.NewController()
+	mdb.Router.GET("/", mdb.Index)
+	mdb.Router.GET("/users", mdb.GetUsers)
+	mdb.Router.GET("/users/{userId}", mdb.GetUserById)
+	mdb.Router.POST("/users/{userId}", mdb.CreateUser)
+	mdb.Router.DELETE("/users/{userId}", mdb.DeleteUser)
+	log.Fatal(http.ListenAndServe(":8080", mdb.Router))
 }
