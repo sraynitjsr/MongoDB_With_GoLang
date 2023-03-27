@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/sraynitjsr/models"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -27,11 +28,15 @@ func NewController() *MongoDB {
 }
 
 func (mdb *MongoDB) Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Fprint(w, "Welcome to API building in Golang\n")
+	fmt.Fprint(w, "Welcome to API building in Golang Using MongoDB\n")
 }
 
 func (mdb *MongoDB) GetUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Fprint(w, "Welcome to API building in Golang\n")
+	fmt.Fprint(w, "Getting All Users\n")
+	cursor, _ := mdb.Collection.Find(context.Background(), mdb.Client)
+	var users []models.User
+	cursor.All(context.Background(), &users)
+	fmt.Fprint(w, users)
 }
 
 func (mdb *MongoDB) GetUserById(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -39,7 +44,13 @@ func (mdb *MongoDB) GetUserById(w http.ResponseWriter, r *http.Request, _ httpro
 }
 
 func (mdb *MongoDB) CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Fprint(w, "Welcome to API building in Golang\n")
+	fmt.Fprint(w, "Creatng one user\n")
+	user := &models.User{
+		Name:   "A",
+		Age:    25,
+		Gender: "Male",
+	}
+	mdb.Collection.InsertOne(context.Background(), user)
 }
 
 func (mdb *MongoDB) DeleteUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
